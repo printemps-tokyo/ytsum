@@ -48,8 +48,9 @@ export function parseJson3(text: string): Segment[] {
   return out;
 }
 
+// Hours are optional: WebVTT allows both "HH:MM:SS.mmm" and "MM:SS.mmm".
 const VTT_TIME_RE =
-  /^(\d{2,}):(\d{2}):(\d{2})[.,](\d{3})\s+-->\s+(\d{2,}):(\d{2}):(\d{2})[.,](\d{3})/;
+  /^(?:(\d+):)?(\d{2}):(\d{2})[.,](\d{3})\s+-->\s+(?:(\d+):)?(\d{2}):(\d{2})[.,](\d{3})/;
 
 /**
  * Parse a WebVTT subtitle file into segments. Inline timing tags like
@@ -69,10 +70,10 @@ export function parseVtt(text: string): Segment[] {
       continue;
     }
 
-    // Capture groups 1-8 are guaranteed present by VTT_TIME_RE.
-    const g = m as unknown as string[];
-    const startMs = hmsToMs(g[1]!, g[2]!, g[3]!, g[4]!);
-    const endMs = hmsToMs(g[5]!, g[6]!, g[7]!, g[8]!);
+    // Groups: [1]=opt start hours, 2=min, 3=sec, 4=ms; [5]=opt end hours, 6-8.
+    const g = m as unknown as Array<string | undefined>;
+    const startMs = hmsToMs(g[1] ?? "0", g[2]!, g[3]!, g[4]!);
+    const endMs = hmsToMs(g[5] ?? "0", g[6]!, g[7]!, g[8]!);
 
     // Collect the cue payload lines until a blank line.
     i++;

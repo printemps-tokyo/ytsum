@@ -151,9 +151,15 @@ async function downloadAndParse(
 
     const files = await readdir(dir);
     const id = info.id;
-    // yt-dlp names the file "<id>.<lang>.<ext>"; prefer json3, then vtt.
-    const json3 = files.find((f) => f.endsWith(".json3"));
-    const vtt = files.find((f) => f.endsWith(".vtt"));
+    // yt-dlp names the file "<id>.<lang>.<ext>". Prefer the file for the chosen
+    // language, then any json3, then any vtt, so a stray sibling file (e.g. an
+    // "en-US" variant) does not get picked over the requested one.
+    const json3 =
+      files.find((f) => f.endsWith(`.${lang}.json3`)) ??
+      files.find((f) => f.endsWith(".json3"));
+    const vtt =
+      files.find((f) => f.endsWith(`.${lang}.vtt`)) ??
+      files.find((f) => f.endsWith(".vtt"));
 
     if (json3) {
       const text = await readFile(join(dir, json3), "utf8");

@@ -45,6 +45,16 @@ describe("extractVideoId", () => {
     expect(extractVideoId(`  ${ID}  `)).toBe(ID);
   });
 
+  it("accepts scheme-less host inputs", () => {
+    expect(extractVideoId(`youtube.com/watch?v=${ID}`)).toBe(ID);
+    expect(extractVideoId(`youtu.be/${ID}`)).toBe(ID);
+  });
+
+  it("accepts uppercase path segments", () => {
+    expect(extractVideoId(`https://www.youtube.com/SHORTS/${ID}`)).toBe(ID);
+    expect(extractVideoId(`https://www.youtube.com/Embed/${ID}`)).toBe(ID);
+  });
+
   it("throws on unrecognized input", () => {
     expect(() => extractVideoId("https://example.com/watch?v=nope")).toThrow();
     expect(() => extractVideoId("not a url and not an id")).toThrow();

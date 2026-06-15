@@ -102,14 +102,33 @@ describe("dedupeSegments (rolling auto-caption duplicates)", () => {
     expect(out.map((s) => s.text)).toEqual(["I am going home", "and then we eat"]);
   });
 
-  it("drops exact and contained repeats (case-insensitive)", () => {
+  it("drops exact repeats (case-insensitive) but keeps non-prefix substrings", () => {
     const dupes: Segment[] = [
       { startMs: 0, durMs: 500, text: "Hello there" },
       { startMs: 500, durMs: 500, text: "hello there" },
       { startMs: 1000, durMs: 500, text: "there" },
       { startMs: 1500, durMs: 500, text: "next" },
     ];
-    expect(dedupeSegments(dupes).map((s) => s.text)).toEqual(["Hello there", "next"]);
+    // "there" is a substring but NOT a prefix of "Hello there", so it is kept
+    // (it is a genuinely new line, not a stale rolling duplicate).
+    expect(dedupeSegments(dupes).map((s) => s.text)).toEqual([
+      "Hello there",
+      "there",
+      "next",
+    ]);
+  });
+
+  it("does not lose a short line that is a substring of an earlier cue", () => {
+    const cues: Segment[] = [
+      { startMs: 0, durMs: 1000, text: "I went to the store and back" },
+      { startMs: 5000, durMs: 500, text: "back" },
+      { startMs: 5500, durMs: 800, text: "back home" },
+    ];
+    // "back" grows into "back home" (prefix), so it is represented, not dropped.
+    expect(dedupeSegments(cues).map((s) => s.text)).toEqual([
+      "I went to the store and back",
+      "back home",
+    ]);
   });
 
   it("plain text output reflects the dedupe", () => {

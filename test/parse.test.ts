@@ -68,4 +68,15 @@ late cue
       { startMs: 3_600_250, durMs: 2000, text: "late cue" },
     ]);
   });
+
+  it("accepts the hours-less MM:SS.mmm cue form", () => {
+    const vtt = `WEBVTT
+
+00:01.000 --> 00:03.000
+short form
+`;
+    expect(parseVtt(vtt)).toEqual([
+      { startMs: 1000, durMs: 2000, text: "short form" },
+    ]);
+  });
 });

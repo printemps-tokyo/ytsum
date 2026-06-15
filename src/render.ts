@@ -21,30 +21,41 @@ export interface PlainTextOptions {
 }
 
 /**
- * Collapse the rolling duplicates that auto-captions produce. A cue is dropped
- * when its text is equal to, or fully contained in, the previously emitted
- * line (case-insensitive). This keeps the last, most complete version of a
- * line that grows token-by-token across cues.
+ * Collapse the rolling duplicates that auto-captions produce, where each cue
+ * repeats the previous line and appends a few more words. Comparison is
+ * case-insensitive against the previously emitted line:
+ *   - exact repeat            -> drop the duplicate
+ *   - current grew from prev  -> replace prev with the longer current
+ *     (prev is a prefix of current)
+ *   - current is a shorter prefix of prev (stale) -> drop it
+ *   - otherwise               -> keep it (a genuinely new line)
+ *
+ * Only prefix relationships are collapsed, so a short cue that merely happens
+ * to be a substring of an earlier line (e.g. "back" after "...and back") is
+ * preserved rather than silently lost.
  */
 export function dedupeSegments(segments: Segment[]): Segment[] {
   const out: Segment[] = [];
-  let prev = "";
   for (const seg of segments) {
-    const cur = seg.text;
-    const a = cur.toLowerCase();
-    const b = prev.toLowerCase();
-    if (prev !== "" && (a === b || b.includes(a))) {
-      // Current is a (possibly stale) subset of what we already emitted: skip.
+    if (out.length === 0) {
+      out.push(seg);
       continue;
     }
-    if (prev !== "" && a.includes(b)) {
-      // Current is a superset that grew from the previous line: replace it.
+    const a = seg.text.toLowerCase();
+    const b = (out[out.length - 1] as Segment).text.toLowerCase();
+    if (a === b) {
+      continue;
+    }
+    if (a.startsWith(b)) {
+      // Rolling caption grew from the previous line: keep the longer version.
       out[out.length - 1] = seg;
-      prev = cur;
+      continue;
+    }
+    if (b.startsWith(a)) {
+      // Stale shorter prefix of what we already emitted: skip.
       continue;
     }
     out.push(seg);
-    prev = cur;
   }
   return out;
 }

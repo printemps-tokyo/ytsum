@@ -36,9 +36,14 @@ export function extractVideoId(input: string): string {
     return trimmed;
   }
 
+  // Accept scheme-less inputs like "youtube.com/watch?v=..." by assuming https.
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+
   let url: URL;
   try {
-    url = new URL(trimmed);
+    url = new URL(withScheme);
   } catch {
     throw new Error(`could not parse a YouTube video id from "${input}"`);
   }
@@ -56,9 +61,10 @@ export function extractVideoId(input: string): string {
     const v = url.searchParams.get("v");
     if (v && isVideoId(v)) return v;
 
-    // /shorts/<id>, /embed/<id>, /live/<id>, /v/<id>
+    // /shorts/<id>, /embed/<id>, /live/<id>, /v/<id> (path segment, any case)
     const parts = url.pathname.split("/").filter(Boolean);
-    if (parts.length >= 2 && ["shorts", "embed", "live", "v"].includes(parts[0] as string)) {
+    const kind = (parts[0] ?? "").toLowerCase();
+    if (parts.length >= 2 && ["shorts", "embed", "live", "v"].includes(kind)) {
       const id = parts[1] as string;
       if (isVideoId(id)) return id;
     }
