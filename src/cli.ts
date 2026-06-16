@@ -10,6 +10,7 @@ import {
   toJson,
   toPlainText,
   toPlainTextWithChapters,
+  truncateText,
   toSrt,
   toVtt,
   type FetchOptions,
@@ -44,6 +45,7 @@ Options:
   --format <fmt>       Output format: text | srt | vtt | json (default text)
   --timestamps         In text format, prefix each line with [mm:ss]
   --chapters           In text format, insert "## <chapter>" headings (if any)
+  --max-chars <n>      Truncate text output to about n characters (text only)
   --out-dir <dir>      Write one file per video named "<id>.<ext>"
                        (default: write to stdout)
   --no-header          Omit the per-video header (title / url / lang)
@@ -80,7 +82,13 @@ async function readFromFile(path: string): Promise<string[]> {
     .filter((l) => l !== "" && !l.startsWith("#"));
 }
 
-function render(format: string, t: Transcript, timestamps: boolean, chapters: boolean): string {
+function render(
+  format: string,
+  t: Transcript,
+  timestamps: boolean,
+  chapters: boolean,
+  maxChars: number,
+): string {
   switch (format) {
     case "srt":
       return toSrt(t.segments);
@@ -88,10 +96,12 @@ function render(format: string, t: Transcript, timestamps: boolean, chapters: bo
       return toVtt(t.segments);
     case "json":
       return toJson(t.meta, t.segments);
-    default:
-      return chapters
+    default: {
+      const text = chapters
         ? toPlainTextWithChapters(t.segments, t.chapters, { timestamps })
         : toPlainText(t.segments, { timestamps });
+      return maxChars > 0 ? truncateText(text, maxChars) : text;
+    }
   }
 }
 
@@ -119,6 +129,7 @@ async function main(): Promise<number> {
       format: { type: "string" },
       timestamps: { type: "boolean", default: false },
       chapters: { type: "boolean", default: false },
+      "max-chars": { type: "string" },
       "out-dir": { type: "string" },
       "no-header": { type: "boolean", default: false },
       proxy: { type: "string" },
@@ -223,6 +234,16 @@ async function main(): Promise<number> {
   }
   const header = !values["no-header"];
 
+  let maxChars = 0;
+  if (values["max-chars"] !== undefined) {
+    const n = Number(values["max-chars"]);
+    if (!Number.isInteger(n) || n < 1) {
+      process.stderr.write("error: --max-chars must be a positive integer\n");
+      return 1;
+    }
+    maxChars = n;
+  }
+
   // Fetch (and write, when --out-dir) each input with bounded concurrency.
   // For stdout we collect rendered bodies and emit them in input order so the
   // output stays deterministic regardless of which fetch finishes first.
@@ -230,7 +251,7 @@ async function main(): Promise<number> {
   const fetched = await mapLimit(inputs, concurrency, async (input): Promise<Item> => {
     try {
       const t = await fetchTranscript(input, opts);
-      const body = render(format, t, Boolean(values.timestamps), Boolean(values.chapters));
+      const body = render(format, t, Boolean(values.timestamps), Boolean(values.chapters), maxChars);
       if (outDir) {
         const ext = EXT[format] as string;
         const path = join(outDir, `${t.meta.id}.${ext}`);

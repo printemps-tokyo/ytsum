@@ -25,6 +25,7 @@ export { parseJson3, parseVtt, type Segment } from "./parse.js";
 export {
   toPlainText,
   toPlainTextWithChapters,
+  truncateText,
   toSrt,
   toVtt,
   toJson,

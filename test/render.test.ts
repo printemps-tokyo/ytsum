@@ -9,6 +9,7 @@ import {
   toJson,
   toPlainText,
   toPlainTextWithChapters,
+  truncateText,
   toSrt,
   toVtt,
   type VideoMeta,
@@ -38,6 +39,19 @@ describe("formatters", () => {
   it("srt and vtt timestamps", () => {
     expect(formatSrtTime(3_661_250)).toBe("01:01:01,250");
     expect(formatVttTime(3_661_250)).toBe("01:01:01.250");
+  });
+});
+
+describe("truncateText", () => {
+  it("returns text unchanged when it fits", () => {
+    expect(truncateText("short", 100)).toBe("short");
+    expect(truncateText("anything", 0)).toBe("anything");
+  });
+
+  it("cuts at a line boundary and appends a note", () => {
+    const text = "line one\nline two\nline three";
+    const out = truncateText(text, 14); // mid "line two"
+    expect(out).toBe("line one\n... (truncated at 14 characters)");
   });
 });
 

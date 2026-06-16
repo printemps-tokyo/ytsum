@@ -60,6 +60,21 @@ export function dedupeSegments(segments: Segment[]): Segment[] {
   return out;
 }
 
+/**
+ * Truncate text to at most `maxChars` characters, cutting at a line boundary so
+ * a cue is never split mid-line, and appending a one-line note. Returns the
+ * text unchanged when it already fits or `maxChars` is not positive.
+ */
+export function truncateText(text: string, maxChars: number): string {
+  if (maxChars <= 0 || text.length <= maxChars) {
+    return text;
+  }
+  const head = text.slice(0, maxChars);
+  const cut = head.lastIndexOf("\n");
+  const kept = cut > 0 ? head.slice(0, cut) : head;
+  return `${kept}\n... (truncated at ${maxChars} characters)`;
+}
+
 /** Render segments as readable plain text, one cue per line. */
 export function toPlainText(segments: Segment[], opts: PlainTextOptions = {}): string {
   const deduped = dedupeSegments(segments);
