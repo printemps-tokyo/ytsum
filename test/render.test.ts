@@ -8,6 +8,7 @@ import {
   renderHeader,
   toJson,
   toPlainText,
+  toPlainTextWithChapters,
   toSrt,
   toVtt,
   type VideoMeta,
@@ -129,6 +130,22 @@ describe("dedupeSegments (rolling auto-caption duplicates)", () => {
       "I went to the store and back",
       "back home",
     ]);
+  });
+
+  it("inserts chapter headings before the first cue at/after each start", () => {
+    const segs: Segment[] = [
+      { startMs: 0, durMs: 1000, text: "intro words" },
+      { startMs: 5000, durMs: 1000, text: "part two words" },
+      { startMs: 9000, durMs: 1000, text: "the end" },
+    ];
+    const chapters = [
+      { startMs: 0, title: "Intro" },
+      { startMs: 5000, title: "Body" },
+      { startMs: 60000, title: "Trailing (no cue)" },
+    ];
+    expect(toPlainTextWithChapters(segs, chapters)).toBe(
+      "## Intro\nintro words\n## Body\npart two words\nthe end",
+    );
   });
 
   it("plain text output reflects the dedupe", () => {

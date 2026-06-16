@@ -1,1 +1,1 @@
-{"events":[{"tStartMs":0,"dDurationMs":1000,"segs":[{"utf8":"line --version"}]}]}
+{"events":[{"tStartMs":0,"dDurationMs":2000,"segs":[{"utf8":"hello"}]},{"tStartMs":3000,"dDurationMs":2000,"segs":[{"utf8":"world"}]}]}

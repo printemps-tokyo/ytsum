@@ -69,6 +69,38 @@ export function toPlainText(segments: Segment[], opts: PlainTextOptions = {}): s
   return lines.join("\n");
 }
 
+/** A video chapter: a start time and a heading title. */
+export interface Chapter {
+  startMs: number;
+  title: string;
+}
+
+/**
+ * Plain text with chapter headings (`## <title>`) inserted before the first cue
+ * at or after each chapter's start. Chapters with no following cue are dropped.
+ */
+export function toPlainTextWithChapters(
+  segments: Segment[],
+  chapters: Chapter[],
+  opts: PlainTextOptions = {},
+): string {
+  if (chapters.length === 0) {
+    return toPlainText(segments, opts);
+  }
+  const deduped = dedupeSegments(segments);
+  const sorted = [...chapters].sort((a, b) => a.startMs - b.startMs);
+  const lines: string[] = [];
+  let ci = 0;
+  for (const seg of deduped) {
+    while (ci < sorted.length && (sorted[ci] as Chapter).startMs <= seg.startMs) {
+      lines.push(`## ${(sorted[ci] as Chapter).title}`);
+      ci++;
+    }
+    lines.push(opts.timestamps ? `[${formatClock(seg.startMs)}] ${seg.text}` : seg.text);
+  }
+  return lines.join("\n");
+}
+
 /** Render segments as a SubRip (.srt) document. */
 export function toSrt(segments: Segment[]): string {
   const deduped = dedupeSegments(segments);

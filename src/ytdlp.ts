@@ -26,6 +26,8 @@ export interface VideoInfo {
   subtitles?: Record<string, SubTrack[]>;
   /** Auto-generated caption tracks, keyed by language. */
   automatic_captions?: Record<string, SubTrack[]>;
+  /** Video chapters, when the video defines them. */
+  chapters?: Array<{ start_time?: number; title?: string }>;
 }
 
 /** How to choose between human-authored and auto-generated tracks. */

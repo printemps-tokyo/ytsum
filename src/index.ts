@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { extractVideoId } from "./ids.js";
 import { parseJson3, parseVtt, type Segment } from "./parse.js";
-import { type VideoMeta } from "./render.js";
+import { type VideoMeta, type Chapter } from "./render.js";
 import {
   assertYtDlp,
   downloadSubs,
@@ -24,6 +24,7 @@ export { mapLimit } from "./concurrency.js";
 export { parseJson3, parseVtt, type Segment } from "./parse.js";
 export {
   toPlainText,
+  toPlainTextWithChapters,
   toSrt,
   toVtt,
   toJson,
@@ -33,6 +34,7 @@ export {
   formatSrtTime,
   formatVttTime,
   type VideoMeta,
+  type Chapter,
   type PlainTextOptions,
 } from "./render.js";
 export {
@@ -70,6 +72,15 @@ export interface FetchOptions {
 export interface Transcript {
   meta: VideoMeta;
   segments: Segment[];
+  /** Video chapters (start time + title), when the video defines them. */
+  chapters: Chapter[];
+}
+
+/** Map yt-dlp's chapter objects to normalized {startMs, title}. */
+function toChapters(info: VideoInfo): Chapter[] {
+  return (info.chapters ?? [])
+    .filter((c) => typeof c.start_time === "number" && c.title)
+    .map((c) => ({ startMs: Math.round((c.start_time as number) * 1000), title: c.title as string }));
 }
 
 function listLangs(pool: Record<string, unknown> | undefined): string[] {
@@ -128,6 +139,7 @@ export async function fetchTranscript(
       isAuto: picked.isAuto,
     },
     segments,
+    chapters: toChapters(info),
   };
 }
 

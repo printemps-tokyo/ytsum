@@ -92,6 +92,7 @@ You know the rules and so do I
 | `--translate <lang>` | Fetch YouTube's auto-translated captions in `<lang>` (implies auto-only) |
 | `--format <fmt>` | Output format: `text`, `srt`, `vtt`, `json` (default `text`) |
 | `--timestamps` | In text format, prefix each line with `[mm:ss]` |
+| `--chapters` | In text format, insert `## <chapter>` headings (when the video has chapters) |
 | `--out-dir <dir>` | Write one file per video named `<id>.<ext>` (default: stdout) |
 | `--no-header` | Omit the per-video header (title / url / lang) |
 | `--proxy <url>` | Pass through to yt-dlp's `--proxy` |

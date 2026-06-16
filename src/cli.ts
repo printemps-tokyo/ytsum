@@ -9,6 +9,7 @@ import {
   renderHeader,
   toJson,
   toPlainText,
+  toPlainTextWithChapters,
   toSrt,
   toVtt,
   type FetchOptions,
@@ -42,6 +43,7 @@ Options:
                        (implies auto-only; overrides --lang)
   --format <fmt>       Output format: text | srt | vtt | json (default text)
   --timestamps         In text format, prefix each line with [mm:ss]
+  --chapters           In text format, insert "## <chapter>" headings (if any)
   --out-dir <dir>      Write one file per video named "<id>.<ext>"
                        (default: write to stdout)
   --no-header          Omit the per-video header (title / url / lang)
@@ -78,7 +80,7 @@ async function readFromFile(path: string): Promise<string[]> {
     .filter((l) => l !== "" && !l.startsWith("#"));
 }
 
-function render(format: string, t: Transcript, timestamps: boolean): string {
+function render(format: string, t: Transcript, timestamps: boolean, chapters: boolean): string {
   switch (format) {
     case "srt":
       return toSrt(t.segments);
@@ -87,7 +89,9 @@ function render(format: string, t: Transcript, timestamps: boolean): string {
     case "json":
       return toJson(t.meta, t.segments);
     default:
-      return toPlainText(t.segments, { timestamps });
+      return chapters
+        ? toPlainTextWithChapters(t.segments, t.chapters, { timestamps })
+        : toPlainText(t.segments, { timestamps });
   }
 }
 
@@ -114,6 +118,7 @@ async function main(): Promise<number> {
       translate: { type: "string" },
       format: { type: "string" },
       timestamps: { type: "boolean", default: false },
+      chapters: { type: "boolean", default: false },
       "out-dir": { type: "string" },
       "no-header": { type: "boolean", default: false },
       proxy: { type: "string" },
@@ -225,7 +230,7 @@ async function main(): Promise<number> {
   const fetched = await mapLimit(inputs, concurrency, async (input): Promise<Item> => {
     try {
       const t = await fetchTranscript(input, opts);
-      const body = render(format, t, Boolean(values.timestamps));
+      const body = render(format, t, Boolean(values.timestamps), Boolean(values.chapters));
       if (outDir) {
         const ext = EXT[format] as string;
         const path = join(outDir, `${t.meta.id}.${ext}`);
