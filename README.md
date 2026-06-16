@@ -95,6 +95,7 @@ You know the rules and so do I
 | `--no-header` | Omit the per-video header (title / url / lang) |
 | `--proxy <url>` | Pass through to yt-dlp's `--proxy` |
 | `--list` | List available subtitle tracks per video, without downloading |
+| `--concurrency <n>` | Fetch up to n videos in parallel (default 1) |
 | `--yt-dlp <path>` | Path to the yt-dlp binary (default `yt-dlp`) |
 | `-h, --help` | Show help |
 | `-v, --version` | Show version |

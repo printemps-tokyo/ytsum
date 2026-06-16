@@ -20,6 +20,7 @@ import {
 } from "./ytdlp.js";
 
 export { extractVideoId, isVideoId } from "./ids.js";
+export { mapLimit } from "./concurrency.js";
 export { parseJson3, parseVtt, type Segment } from "./parse.js";
 export {
   toPlainText,

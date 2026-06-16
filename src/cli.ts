@@ -5,6 +5,7 @@ import { join } from "node:path";
 import {
   fetchTranscript,
   listTracks,
+  mapLimit,
   renderHeader,
   toJson,
   toPlainText,
@@ -45,6 +46,7 @@ Options:
   --proxy <url>        Pass through to yt-dlp's --proxy. Without it, the
                        HTTPS_PROXY / HTTP_PROXY env vars are honored.
   --list               List available subtitle tracks per video, no download
+  --concurrency <n>    Fetch up to n videos in parallel (default 1)
   --yt-dlp <path>      Path to the yt-dlp binary (default "yt-dlp")
   -h, --help           Show this help
   -v, --version        Show version
@@ -113,6 +115,7 @@ async function main(): Promise<number> {
       "no-header": { type: "boolean", default: false },
       proxy: { type: "string" },
       list: { type: "boolean", default: false },
+      concurrency: { type: "string" },
       "yt-dlp": { type: "string" },
       help: { type: "boolean", short: "h", default: false },
     },
@@ -180,6 +183,16 @@ async function main(): Promise<number> {
     ytDlpPath: values["yt-dlp"],
   };
 
+  let concurrency = 1;
+  if (values.concurrency !== undefined) {
+    const n = Number(values.concurrency);
+    if (!Number.isInteger(n) || n < 1) {
+      process.stderr.write("error: --concurrency must be a positive integer\n");
+      return 1;
+    }
+    concurrency = n;
+  }
+
   if (values.list) {
     return runList(inputs, opts);
   }
@@ -190,13 +203,14 @@ async function main(): Promise<number> {
   }
   const header = !values["no-header"];
 
-  let failed = 0;
-  let first = true;
-  for (const input of inputs) {
+  // Fetch (and write, when --out-dir) each input with bounded concurrency.
+  // For stdout we collect rendered bodies and emit them in input order so the
+  // output stays deterministic regardless of which fetch finishes first.
+  type Item = { input: string; ok: boolean; out?: string; error?: string };
+  const fetched = await mapLimit(inputs, concurrency, async (input): Promise<Item> => {
     try {
       const t = await fetchTranscript(input, opts);
       const body = render(format, t, Boolean(values.timestamps));
-
       if (outDir) {
         const ext = EXT[format] as string;
         const path = join(outDir, `${t.meta.id}.${ext}`);
@@ -204,20 +218,27 @@ async function main(): Promise<number> {
           header && format === "text" ? renderHeader(t.meta) + body + "\n" : body + "\n";
         await writeFile(path, content, "utf8");
         process.stderr.write(`${input} -> ${path}\n`);
-      } else {
-        if (!first) process.stdout.write("\n");
-        if (header && format === "text") {
-          process.stdout.write(renderHeader(t.meta));
-        }
-        process.stdout.write(body + "\n");
-        first = false;
+        return { input, ok: true };
       }
+      const out = header && format === "text" ? renderHeader(t.meta) + body : body;
+      return { input, ok: true, out };
     } catch (err) {
-      failed++;
       process.stderr.write(`error: ${input}: ${(err as Error).message}\n`);
+      return { input, ok: false, error: (err as Error).message };
+    }
+  });
+
+  if (!outDir) {
+    let first = true;
+    for (const item of fetched) {
+      if (item.out === undefined) continue;
+      if (!first) process.stdout.write("\n");
+      process.stdout.write(item.out + "\n");
+      first = false;
     }
   }
-  return failed > 0 ? 1 : 0;
+
+  return fetched.some((r) => !r.ok) ? 1 : 0;
 }
 
 async function runList(inputs: string[], opts: FetchOptions): Promise<number> {
