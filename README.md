@@ -89,6 +89,7 @@ You know the rules and so do I
 | `--lang <list>` | Preferred languages, comma-separated, in priority order (default `ja,en`) |
 | `--manual-only` | Only use human-authored subtitles |
 | `--auto-only` | Only use auto-generated captions |
+| `--translate <lang>` | Fetch YouTube's auto-translated captions in `<lang>` (implies auto-only) |
 | `--format <fmt>` | Output format: `text`, `srt`, `vtt`, `json` (default `text`) |
 | `--timestamps` | In text format, prefix each line with `[mm:ss]` |
 | `--out-dir <dir>` | Write one file per video named `<id>.<ext>` (default: stdout) |

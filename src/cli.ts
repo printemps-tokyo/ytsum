@@ -38,6 +38,8 @@ Options:
   --manual-only        Only use human-authored subtitles
   --auto-only          Only use auto-generated captions
                        (default: prefer manual, fall back to auto)
+  --translate <lang>   Fetch YouTube's auto-translated captions in <lang>
+                       (implies auto-only; overrides --lang)
   --format <fmt>       Output format: text | srt | vtt | json (default text)
   --timestamps         In text format, prefix each line with [mm:ss]
   --out-dir <dir>      Write one file per video named "<id>.<ext>"
@@ -109,6 +111,7 @@ async function main(): Promise<number> {
       lang: { type: "string" },
       "manual-only": { type: "boolean", default: false },
       "auto-only": { type: "boolean", default: false },
+      translate: { type: "string" },
       format: { type: "string" },
       timestamps: { type: "boolean", default: false },
       "out-dir": { type: "string" },
@@ -148,6 +151,13 @@ async function main(): Promise<number> {
     process.stderr.write("error: --manual-only and --auto-only are mutually exclusive\n");
     return 1;
   }
+  if (values.translate && values["manual-only"]) {
+    process.stderr.write(
+      "error: --translate cannot be combined with --manual-only " +
+        "(translations are auto-generated)\n",
+    );
+    return 1;
+  }
 
   const format = values.format ?? "text";
   if (!FORMATS.has(format)) {
@@ -157,7 +167,10 @@ async function main(): Promise<number> {
     return 1;
   }
 
-  const langs = (values.lang ?? "ja,en")
+  // --translate <lang> fetches the auto-translated caption in that language:
+  // it forces the auto track set and uses the target language only.
+  const langSource = values.translate ?? values.lang ?? "ja,en";
+  const langs = langSource
     .split(",")
     .map((s) => s.trim())
     .filter((s) => s !== "");
@@ -166,11 +179,13 @@ async function main(): Promise<number> {
     return 1;
   }
 
-  const policy: SubtitlePolicy = values["manual-only"]
-    ? "manual-only"
-    : values["auto-only"]
-      ? "auto-only"
-      : "prefer-manual";
+  const policy: SubtitlePolicy = values.translate
+    ? "auto-only"
+    : values["manual-only"]
+      ? "manual-only"
+      : values["auto-only"]
+        ? "auto-only"
+        : "prefer-manual";
 
   // Honor HTTPS_PROXY / HTTP_PROXY when --proxy is absent.
   const proxy =

@@ -117,4 +117,9 @@ describe("pickTrack", () => {
   it("returns null when nothing matches", () => {
     expect(pickTrack(info, ["de"], "prefer-manual")).toBeNull();
   });
+
+  it("picks an auto-translated language (the --translate path)", () => {
+    // ja exists only as an auto-translation; --translate maps to auto-only + [ja].
+    expect(pickTrack(info, ["ja"], "auto-only")).toEqual({ lang: "ja", isAuto: true });
+  });
 });
