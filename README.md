@@ -28,11 +28,16 @@ the title, URL, and language.
 
 ## Install
 
+Not published to npm yet — install from source:
+
 ```bash
-npm install -g @printemps-tokyo/ytsum
-# or run once:
-npx @printemps-tokyo/ytsum https://youtu.be/dQw4w9WgXcQ
+git clone https://github.com/printemps-tokyo/ytsum
+cd ytsum
+npm install && npm run build
+npm link   # optional: puts the `ytsum` command on your PATH
 ```
+
+Then run `ytsum …` (after `npm link`), or `node dist/cli.js …` from the clone.
 
 ## Usage
 
