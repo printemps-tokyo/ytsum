@@ -156,6 +156,11 @@ describe("integration (stub yt-dlp)", () => {
     expect(stdout).toContain("auto:   en, ja");
   });
 
+  it("recognizes --version regardless of position", async () => {
+    const { stdout } = await runCli(["--lang", "en", VIDEO_ID, "--version"]);
+    expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
   it("exits non-zero with a clear error when yt-dlp is missing", async () => {
     await expect(
       runCli(["--yt-dlp", "/no/such/yt-dlp-binary", VIDEO_ID]),

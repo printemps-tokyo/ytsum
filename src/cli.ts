@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import { parseArgs } from "node:util";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { parseCliArgs } from "./args.js";
 import {
   fetchTranscript,
   listTracks,
@@ -106,42 +106,21 @@ function render(
 }
 
 async function main(): Promise<number> {
-  const argv = process.argv.slice(2);
-
-  if (argv[0] === "-h" || argv[0] === "--help") {
-    process.stdout.write(HELP);
-    return 0;
+  let parsed: ReturnType<typeof parseCliArgs>;
+  try {
+    parsed = parseCliArgs(process.argv.slice(2));
+  } catch (err) {
+    process.stderr.write(`error: ${(err as Error).message}\n`);
+    return 1;
   }
-  if (argv[0] === "-v" || argv[0] === "--version") {
-    process.stdout.write((await readVersion()) + "\n");
-    return 0;
-  }
-
-  const { values, positionals } = parseArgs({
-    args: argv,
-    allowPositionals: true,
-    options: {
-      "from-file": { type: "string" },
-      lang: { type: "string" },
-      "manual-only": { type: "boolean", default: false },
-      "auto-only": { type: "boolean", default: false },
-      translate: { type: "string" },
-      format: { type: "string" },
-      timestamps: { type: "boolean", default: false },
-      chapters: { type: "boolean", default: false },
-      "max-chars": { type: "string" },
-      "out-dir": { type: "string" },
-      "no-header": { type: "boolean", default: false },
-      proxy: { type: "string" },
-      list: { type: "boolean", default: false },
-      concurrency: { type: "string" },
-      "yt-dlp": { type: "string" },
-      help: { type: "boolean", short: "h", default: false },
-    },
-  });
+  const { values, positionals } = parsed;
 
   if (values.help) {
     process.stdout.write(HELP);
+    return 0;
+  }
+  if (values.version) {
+    process.stdout.write((await readVersion()) + "\n");
     return 0;
   }
 
@@ -314,9 +293,14 @@ async function readVersion(): Promise<string> {
   }
 }
 
+// Set process.exitCode instead of calling process.exit() so Node keeps the
+// process alive until stdout/stderr are fully flushed; process.exit() can
+// truncate large writes when stdout is a pipe.
 main()
-  .then((code) => process.exit(code))
+  .then((code) => {
+    process.exitCode = code;
+  })
   .catch((err) => {
     process.stderr.write(`fatal: ${(err as Error).message}\n`);
-    process.exit(1);
+    process.exitCode = 1;
   });
