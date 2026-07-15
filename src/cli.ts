@@ -2,6 +2,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseCliArgs } from "./args.js";
+import { usageError } from "./usage.js";
 import {
   fetchTranscript,
   listTracks,
@@ -115,7 +116,7 @@ async function main(): Promise<number> {
   try {
     parsed = parseCliArgs(process.argv.slice(2));
   } catch (err) {
-    process.stderr.write(`error: ${(err as Error).message}\n`);
+    process.stderr.write(usageError(err, "ytsum"));
     return 1;
   }
   const { values, positionals } = parsed;
