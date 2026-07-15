@@ -157,6 +157,29 @@ export function toJson(meta: VideoMeta, segments: Segment[]): string {
   );
 }
 
+/** Available subtitle tracks for a video, split by kind, as `--list` reports. */
+export interface TrackListing {
+  meta: Pick<VideoMeta, "id" | "title" | "url">;
+  manual: string[];
+  auto: string[];
+}
+
+/** Render one track listing as the human-readable `--list` block. */
+export function renderTrackListingText(listing: TrackListing): string {
+  const manual = listing.manual.length > 0 ? listing.manual.join(", ") : "(none)";
+  const auto = listing.auto.length > 0 ? listing.auto.join(", ") : "(none)";
+  return (
+    `# ${listing.meta.title}\n# ${listing.meta.url}\n` +
+    `  manual: ${manual}\n` +
+    `  auto:   ${auto}\n`
+  );
+}
+
+/** Render track listings as a JSON array, for `--list --format json`. */
+export function renderTrackListingsJson(listings: TrackListing[]): string {
+  return JSON.stringify(listings, null, 2) + "\n";
+}
+
 /** Build the per-video header that precedes a transcript (helps the LLM). */
 export function renderHeader(meta: VideoMeta): string {
   const kind = meta.isAuto ? "auto" : "manual";

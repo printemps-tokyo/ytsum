@@ -6,12 +6,15 @@ import {
   formatSrtTime,
   formatVttTime,
   renderHeader,
+  renderTrackListingText,
+  renderTrackListingsJson,
   toJson,
   toPlainText,
   toPlainTextWithChapters,
   truncateText,
   toSrt,
   toVtt,
+  type TrackListing,
   type VideoMeta,
 } from "../src/render.js";
 
@@ -169,5 +172,55 @@ describe("dedupeSegments (rolling auto-caption duplicates)", () => {
       { startMs: 800, durMs: 500, text: "three" },
     ];
     expect(toPlainText(rolling)).toBe("one two\nthree");
+  });
+});
+
+const listing: TrackListing = {
+  meta: {
+    id: "abc12345678",
+    title: "My Video",
+    url: "https://www.youtube.com/watch?v=abc12345678",
+  },
+  manual: ["ja"],
+  auto: ["en", "ja"],
+};
+
+describe("renderTrackListingText", () => {
+  it("renders title, url, and both track kinds", () => {
+    expect(renderTrackListingText(listing)).toBe(
+      "# My Video\n" +
+        "# https://www.youtube.com/watch?v=abc12345678\n" +
+        "  manual: ja\n" +
+        "  auto:   en, ja\n",
+    );
+  });
+
+  it("shows (none) for empty track kinds", () => {
+    const empty: TrackListing = { ...listing, manual: [], auto: [] };
+    const out = renderTrackListingText(empty);
+    expect(out).toContain("manual: (none)");
+    expect(out).toContain("auto:   (none)");
+  });
+});
+
+describe("renderTrackListingsJson", () => {
+  it("emits a JSON array of listings ending with a newline", () => {
+    const out = renderTrackListingsJson([listing]);
+    expect(out.endsWith("\n")).toBe(true);
+    expect(JSON.parse(out)).toEqual([
+      {
+        meta: {
+          id: "abc12345678",
+          title: "My Video",
+          url: "https://www.youtube.com/watch?v=abc12345678",
+        },
+        manual: ["ja"],
+        auto: ["en", "ja"],
+      },
+    ]);
+  });
+
+  it("emits an empty array when there are no listings", () => {
+    expect(JSON.parse(renderTrackListingsJson([]))).toEqual([]);
   });
 });

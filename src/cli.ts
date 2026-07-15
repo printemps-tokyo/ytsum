@@ -7,6 +7,8 @@ import {
   listTracks,
   mapLimit,
   renderHeader,
+  renderTrackListingText,
+  renderTrackListingsJson,
   toJson,
   toPlainText,
   toPlainTextWithChapters,
@@ -15,6 +17,7 @@ import {
   toVtt,
   type FetchOptions,
   type SubtitlePolicy,
+  type TrackListing,
   type Transcript,
 } from "./index.js";
 
@@ -52,6 +55,7 @@ Options:
   --proxy <url>        Pass through to yt-dlp's --proxy. Without it, the
                        HTTPS_PROXY / HTTP_PROXY env vars are honored.
   --list               List available subtitle tracks per video, no download
+                       (with --format json, emit the listing as a JSON array)
   --concurrency <n>    Fetch up to n videos in parallel (default 1)
   --yt-dlp <path>      Path to the yt-dlp binary (default "yt-dlp")
   -h, --help           Show this help
@@ -64,6 +68,7 @@ Examples:
   ytsum --auto-only --timestamps dQw4w9WgXcQ
   ytsum --proxy http://127.0.0.1:8080 dQw4w9WgXcQ
   ytsum --list dQw4w9WgXcQ
+  ytsum --list --format json dQw4w9WgXcQ
 `;
 
 const FORMATS = new Set(["text", "srt", "vtt", "json"]);
@@ -204,7 +209,7 @@ async function main(): Promise<number> {
   }
 
   if (values.list) {
-    return runList(inputs, opts);
+    return runList(inputs, opts, format);
   }
 
   const outDir = values["out-dir"];
@@ -261,22 +266,31 @@ async function main(): Promise<number> {
   return fetched.some((r) => !r.ok) ? 1 : 0;
 }
 
-async function runList(inputs: string[], opts: FetchOptions): Promise<number> {
+async function runList(
+  inputs: string[],
+  opts: FetchOptions,
+  format: string,
+): Promise<number> {
+  const listings: TrackListing[] = [];
   let failed = 0;
   for (const input of inputs) {
     try {
       const listing = await listTracks(input, opts);
-      process.stdout.write(`# ${listing.meta.title}\n# ${listing.meta.url}\n`);
-      process.stdout.write(
-        `  manual: ${listing.manual.length > 0 ? listing.manual.join(", ") : "(none)"}\n`,
-      );
-      process.stdout.write(
-        `  auto:   ${listing.auto.length > 0 ? listing.auto.join(", ") : "(none)"}\n`,
-      );
+      if (format === "json") {
+        listings.push(listing);
+      } else {
+        process.stdout.write(renderTrackListingText(listing));
+      }
     } catch (err) {
       failed++;
       process.stderr.write(`error: ${input}: ${(err as Error).message}\n`);
     }
+  }
+  if (format === "json") {
+    // Machine-readable listing: a JSON array of { meta, manual, auto } so
+    // scripts can pick a language before fetching. Failed inputs are reported
+    // on stderr and omitted from the array.
+    process.stdout.write(renderTrackListingsJson(listings));
   }
   return failed > 0 ? 1 : 0;
 }

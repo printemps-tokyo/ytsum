@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { extractVideoId } from "./ids.js";
 import { parseJson3, parseVtt, type Segment } from "./parse.js";
-import { type VideoMeta, type Chapter } from "./render.js";
+import { type VideoMeta, type Chapter, type TrackListing } from "./render.js";
 import {
   assertYtDlp,
   downloadSubs,
@@ -30,6 +30,8 @@ export {
   toVtt,
   toJson,
   renderHeader,
+  renderTrackListingText,
+  renderTrackListingsJson,
   dedupeSegments,
   formatClock,
   formatSrtTime,
@@ -37,6 +39,7 @@ export {
   type VideoMeta,
   type Chapter,
   type PlainTextOptions,
+  type TrackListing,
 } from "./render.js";
 export {
   buildInfoArgs,
@@ -50,13 +53,6 @@ export {
   type SubtitlePolicy,
   type PickedTrack,
 } from "./ytdlp.js";
-
-/** Available subtitle tracks for a video, split by kind, as `--list` reports. */
-export interface TrackListing {
-  meta: Pick<VideoMeta, "id" | "title" | "url">;
-  manual: string[];
-  auto: string[];
-}
 
 export interface FetchOptions {
   /** Preferred languages, in priority order. Default ["ja", "en"]. */

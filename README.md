@@ -73,6 +73,9 @@ ytsum --proxy http://127.0.0.1:8080 dQw4w9WgXcQ
 
 # Just list what subtitle tracks exist, without downloading
 ytsum --list dQw4w9WgXcQ
+
+# Same listing as JSON, so a script can pick a language before fetching
+ytsum --list --format json dQw4w9WgXcQ
 ```
 
 A per-video header is printed by default (it helps the LLM):
@@ -102,7 +105,7 @@ You know the rules and so do I
 | `--out-dir <dir>` | Write one file per video named `<id>.<ext>` (default: stdout) |
 | `--no-header` | Omit the per-video header (title / url / lang) |
 | `--proxy <url>` | Pass through to yt-dlp's `--proxy` |
-| `--list` | List available subtitle tracks per video, without downloading |
+| `--list` | List available subtitle tracks per video, without downloading. With `--format json`, emits a JSON array of `{ meta: { id, title, url }, manual: [...], auto: [...] }` |
 | `--concurrency <n>` | Fetch up to n videos in parallel (default 1) |
 | `--yt-dlp <path>` | Path to the yt-dlp binary (default `yt-dlp`) |
 | `-h, --help` | Show help |

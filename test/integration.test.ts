@@ -156,6 +156,28 @@ describe("integration (stub yt-dlp)", () => {
     expect(stdout).toContain("auto:   en, ja");
   });
 
+  it("--list --format json emits the listing as a JSON array", async () => {
+    const { stdout } = await runCli([
+      "--yt-dlp",
+      stub,
+      "--list",
+      "--format",
+      "json",
+      VIDEO_ID,
+    ]);
+    expect(JSON.parse(stdout)).toEqual([
+      {
+        meta: {
+          id: VIDEO_ID,
+          title: "Stub Video Title",
+          url: `https://www.youtube.com/watch?v=${VIDEO_ID}`,
+        },
+        manual: ["ja"],
+        auto: ["en", "ja"],
+      },
+    ]);
+  });
+
   it("recognizes --version regardless of position", async () => {
     const { stdout } = await runCli(["--lang", "en", VIDEO_ID, "--version"]);
     expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
