@@ -117,7 +117,11 @@ You know the rules and so do I
   and falls back to auto-generated captions only when no preferred language has a
   manual track. `--manual-only` and `--auto-only` force one or the other (they are
   mutually exclusive). Within the eligible set, the first `--lang` that exists
-  wins.
+  wins. A plain code also accepts a regional track: `--lang en` takes `en-GB`
+  or `en-US` when the video has no plain `en` one.
+- **No matching track.** The error lists the manual and auto tracks the video
+  does have and suggests what to try (`--lang <code>`, `--list`, or dropping
+  `--manual-only` / `--auto-only`).
 - **Auto-caption dedupe.** Auto-generated captions emit rolling, overlapping
   cues (each line repeated as it grows). All output formats collapse that
   redundancy so the result reads cleanly.

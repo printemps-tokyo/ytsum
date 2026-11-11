@@ -1,6 +1,6 @@
 {
   "name": "@printemps-tokyo/ytsum",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Fetch YouTube transcripts (via yt-dlp) as clean LLM-ready text. Zero-dependency CLI.",
   "type": "module",
   "license": "MIT",

@@ -13,6 +13,7 @@ import { type VideoMeta, type Chapter, type TrackListing } from "./render.js";
 import {
   assertYtDlp,
   downloadSubs,
+  describeNoMatch,
   fetchInfo,
   pickTrack,
   type SubtitlePolicy,
@@ -45,6 +46,7 @@ export {
   buildInfoArgs,
   buildSubsArgs,
   pickTrack,
+  describeNoMatch,
   assertYtDlp,
   fetchInfo,
   downloadSubs,
@@ -119,10 +121,7 @@ export async function fetchTranscript(
   const info = await fetchInfo(url, { proxy: opts.proxy, bin: opts.ytDlpPath });
   const picked = pickTrack(info, langs, policy);
   if (!picked) {
-    throw new Error(
-      `no subtitles found for ${id} matching langs [${langs.join(", ")}] ` +
-        `(policy: ${policy})`,
-    );
+    throw new Error(describeNoMatch(info.id ?? id, info, langs, policy));
   }
 
   const segments = await downloadAndParse(url, info, picked.lang, picked.isAuto, opts);

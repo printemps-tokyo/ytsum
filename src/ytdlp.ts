@@ -111,6 +111,14 @@ export function pickTrack(
       if (list && list.length > 0) {
         return { lang, isAuto };
       }
+      // "en" also accepts a regional track such as "en-US" or "en-GB" when
+      // the video has no plain "en" one. The first in sorted order wins.
+      const regional = Object.keys(pool)
+        .filter((k) => k.startsWith(`${lang}-`) && (pool[k]?.length ?? 0) > 0)
+        .sort()[0];
+      if (regional) {
+        return { lang: regional, isAuto };
+      }
     }
     return null;
   };
@@ -123,6 +131,43 @@ export function pickTrack(
   }
   // prefer-manual: try manual for every preferred lang first, then auto.
   return tryLangs(manual, false) ?? tryLangs(auto, true);
+}
+
+/**
+ * Explain why pickTrack found nothing: which tracks the video does have, and
+ * what to try instead. Auto-caption lists include every machine translation
+ * YouTube offers, so long lists are cut short.
+ */
+export function describeNoMatch(
+  id: string,
+  info: VideoInfo,
+  langPrefs: string[],
+  policy: SubtitlePolicy,
+): string {
+  const manual = Object.keys(info.subtitles ?? {}).sort();
+  const auto = Object.keys(info.automatic_captions ?? {}).sort();
+  const head = `no subtitles found for ${id} matching langs [${langPrefs.join(", ")}] (policy: ${policy})`;
+  if (manual.length === 0 && auto.length === 0) {
+    return `${head}: the video has no subtitles and no auto-generated captions`;
+  }
+  const show = (langs: string[]): string => {
+    if (langs.length === 0) return "none";
+    const max = 10;
+    const shown = langs.slice(0, max).join(", ");
+    return langs.length > max ? `${shown}, ... (${langs.length} in all)` : shown;
+  };
+  const lines = [head, `  manual: ${show(manual)}`, `  auto:   ${show(auto)}`];
+  if (policy === "manual-only" && auto.length > 0) {
+    lines.push("  try dropping --manual-only to accept auto-generated captions");
+  } else if (policy === "auto-only" && manual.length > 0) {
+    lines.push(
+      "  --auto-only and --translate skip human-authored subtitles; try without them, or --list",
+    );
+  } else {
+    const suggest = manual[0] ?? auto[0];
+    lines.push(`  try --lang ${suggest}, or --list to see every track`);
+  }
+  return lines.join("\n");
 }
 
 /** Throw a friendly, actionable error if yt-dlp is not on PATH. */

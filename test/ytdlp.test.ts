@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildInfoArgs,
   buildSubsArgs,
+  describeNoMatch,
   pickTrack,
   type VideoInfo,
 } from "../src/ytdlp.js";
@@ -121,5 +122,71 @@ describe("pickTrack", () => {
   it("picks an auto-translated language (the --translate path)", () => {
     // ja exists only as an auto-translation; --translate maps to auto-only + [ja].
     expect(pickTrack(info, ["ja"], "auto-only")).toEqual({ lang: "ja", isAuto: true });
+  });
+});
+
+const vi = (fields: Partial<VideoInfo>): VideoInfo => ({
+  id: "abc12345678",
+  title: "T",
+  webpage_url: URL,
+  ...fields,
+});
+
+describe("pickTrack regional variants", () => {
+  const info: VideoInfo = vi({
+    subtitles: { "en-US": [{ ext: "vtt" }], "en-GB": [{ ext: "vtt" }] },
+    automatic_captions: { en: [{ ext: "json3" }] },
+  });
+
+  it("accepts a regional track for a plain language", () => {
+    expect(pickTrack(info, ["en"], "prefer-manual")).toEqual({ lang: "en-GB", isAuto: false });
+  });
+
+  it("still prefers an exact match in the same pool", () => {
+    expect(pickTrack(info, ["en"], "auto-only")).toEqual({ lang: "en", isAuto: true });
+  });
+
+  it("does not treat a longer code as a variant", () => {
+    const other = vi({ subtitles: { eng: [{ ext: "vtt" }] } });
+    expect(pickTrack(other, ["en"], "prefer-manual")).toBeNull();
+  });
+});
+
+describe("describeNoMatch", () => {
+  it("says when the video has no tracks at all", () => {
+    expect(describeNoMatch("abc12345678", vi({}), ["ja"], "prefer-manual")).toBe(
+      "no subtitles found for abc12345678 matching langs [ja] (policy: prefer-manual): " +
+        "the video has no subtitles and no auto-generated captions",
+    );
+  });
+
+  it("lists what exists and suggests a language", () => {
+    const msg = describeNoMatch(
+      "abc12345678",
+      vi({ subtitles: { fr: [{ ext: "vtt" }] }, automatic_captions: { de: [{ ext: "vtt" }] } }),
+      ["ja", "en"],
+      "prefer-manual",
+    );
+    expect(msg).toContain("  manual: fr");
+    expect(msg).toContain("  auto:   de");
+    expect(msg).toContain("try --lang fr");
+  });
+
+  it("points at the policy flag when it is the cause", () => {
+    const msg = describeNoMatch(
+      "abc12345678",
+      vi({ automatic_captions: { ja: [{ ext: "vtt" }] } }),
+      ["ja"],
+      "manual-only",
+    );
+    expect(msg).toContain("  manual: none");
+    expect(msg).toContain("dropping --manual-only");
+  });
+
+  it("cuts long auto-caption lists short", () => {
+    const auto: Record<string, { ext: string }[]> = {};
+    for (let i = 0; i < 30; i++) auto[`l${String(i).padStart(2, "0")}`] = [{ ext: "vtt" }];
+    const msg = describeNoMatch("abc12345678", vi({ automatic_captions: auto }), ["ja"], "prefer-manual");
+    expect(msg).toContain("... (30 in all)");
   });
 });
