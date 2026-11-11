@@ -22,7 +22,7 @@ the title, URL, and language.
 
 ## Requirements
 
-- Node.js >= 20
+- Node.js >= 22
 - [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) on your `PATH`
   (macOS: `brew install yt-dlp`). yt-dlp handles all networking and blocks.
 
